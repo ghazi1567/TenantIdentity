@@ -53,7 +53,7 @@ namespace TenantIdentity.Application.Services
             if (!result.Succeeded)
             {
                 var errors = result.Errors.Select(e => e.Description).ToArray();
-                return ResponseModel<UserDto>.Fail(errors[0]);
+                return ResponseModel<UserDto>.Fail(errors);
             }
 
             return ResponseModel<UserDto>.Ok("User registered successfully");
