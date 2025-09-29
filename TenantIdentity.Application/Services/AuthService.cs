@@ -1,7 +1,7 @@
-﻿using TenantIdentity.Application.Abstractions.Interfaces.Identity;
+﻿using eBuildingBlocks.Application.Features;
+using TenantIdentity.Application.Abstractions.Interfaces.Identity;
 using TenantIdentity.Application.DTOs;
 using TenantIdentity.Domain.Interfaces;
-using eBuildingBlocks.Application.Features;
 
 namespace TenantIdentity.Application.Services
 {
@@ -18,25 +18,25 @@ namespace TenantIdentity.Application.Services
         }
         public async Task<ResponseModel<LoginResponseDto>> AuthenticateAsync(string email, string password)
         {
-            var result = new ResponseModel<LoginResponseDto>();
+
             var user = await _userRepository.FindByEmailAsync(email);
             if (user == null)
-                return result.AddErrorMessage("User not found");
+                return ResponseModel<LoginResponseDto>.Fail("User not found");
 
             if (!user.EmailConfirmed)
-                return result.AddErrorMessage("Email not confirmed");
+                return ResponseModel<LoginResponseDto>.Fail("Email not confirmed");
 
             var isPasswordValid = await _userRepository.CheckPasswordSignInAsync(user, password);
             if (!isPasswordValid)
-                return result.AddErrorMessage("Invalid credentials");
+                return ResponseModel<LoginResponseDto>.Fail("Invalid credentials");
 
 
 
             var claims = await _claimsProvider.GetClaimsAsync(user);
             var token = _tokenService.GenerateToken(user, claims);
 
-            result.AddSuccessMessage("Authentication successful");
-            result.Data = new LoginResponseDto
+
+            var response = new LoginResponseDto
             {
                 Token = token,
                 UserId = user.Id,
@@ -44,7 +44,7 @@ namespace TenantIdentity.Application.Services
                 UserName = user.UserName
             };
 
-            return result;
+            return ResponseModel<LoginResponseDto>.Ok(response, "Authentication successful"); ;
         }
 
         public Task<ResponseModel<LoginResponseDto>> AuthenticateGoogleAsync(string email)

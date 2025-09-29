@@ -1,8 +1,8 @@
-﻿using TenantIdentity.Application.Abstractions.Interfaces;
+﻿using eBuildingBlocks.Application.Features;
+using TenantIdentity.Application.Abstractions.Interfaces;
 using TenantIdentity.Application.DTOs;
 using TenantIdentity.Domain.Entities;
 using TenantIdentity.Domain.Interfaces;
-using eBuildingBlocks.Application.Features;
 
 namespace TenantIdentity.Application.Services
 {
@@ -23,7 +23,7 @@ namespace TenantIdentity.Application.Services
              ));
             var result = await _tenantRepository.SaveChangesAsync();
 
-            return new ResponseModel().AddSuccessMessage("Tenant created successfully.");
+            return ResponseModel<TenantDto>.Ok("Tenant created successfully.");
         }
 
         public async Task<ResponseModel<TenantDto>> GetByIdAsync(Guid id)
@@ -32,9 +32,9 @@ namespace TenantIdentity.Application.Services
 
             if (tenant == null)
             {
-                return new ResponseModel<TenantDto>().AddErrorMessage("Tenant not found.");
+                return ResponseModel<TenantDto>.Fail("Tenant not found.");
             }
-            return new ResponseModel<TenantDto>().AddSuccessMessage(new TenantDto(tenant.Id, tenant.ShortName, tenant.Name, tenant.IsActive, tenant.Domain),
+            return ResponseModel<TenantDto>.Ok(new TenantDto(tenant.Id, tenant.ShortName, tenant.Name, tenant.IsActive, tenant.Domain),
             "Tenant Found.");
         }
 

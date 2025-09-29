@@ -24,12 +24,12 @@ namespace TenantIdentity.Application.Services
             var result = await _userRepository.FindByEmailAsync(userEmail);
             if (result == null)
             {
-                return new ResponseModel<UserDto>().AddErrorMessage("User Not found");
+                return ResponseModel<UserDto>.Fail("User Not found");
             }
 
             var userDto = new UserDto(result.Id, result.Email, result.EmailConfirmed, result.TenantId);
 
-            return new ResponseModel<UserDto>().AddSuccessMessage(userDto, "User fetched successfully");
+            return ResponseModel<UserDto>.Ok(userDto, "User fetched successfully");
         }
 
         public async Task<ResponseModel<UserDto>> GetUserByIdAsync(string userId)
@@ -37,12 +37,12 @@ namespace TenantIdentity.Application.Services
             var result = await _userRepository.FindByIdAsync(userId);
             if (result == null)
             {
-                return new ResponseModel<UserDto>().AddErrorMessage("User Not found");
+                return ResponseModel<UserDto>.Fail("User Not found");
             }
 
             var userDto = new UserDto(result.Id, result.Email, result.EmailConfirmed, result.TenantId);
 
-            return new ResponseModel<UserDto>().AddSuccessMessage(userDto, "User fetched successfully");
+            return ResponseModel<UserDto>.Ok(userDto, "User fetched successfully");
         }
 
         public async Task<ResponseModel> RegisterAsync(RegisterDto dto)
@@ -52,22 +52,22 @@ namespace TenantIdentity.Application.Services
 
             if (!result.Succeeded)
             {
-                var errors = result.Errors.Select(e => e.Description).ToList();
-                return new ResponseModel<UserDto>().AddErrorMessage(errors);
+                var errors = result.Errors.Select(e => e.Description).ToArray();
+                return ResponseModel<UserDto>.Fail(errors[0]);
             }
 
-            return new ResponseModel<UserDto>().AddSuccessMessage("User registered successfully");
+            return ResponseModel<UserDto>.Ok("User registered successfully");
         }
 
         public async Task<ResponseModel> ChangePasswordAsync(ChangePasswordDto dto)
         {
             var result = new ResponseModel();
             if (!Guid.TryParse(dto.UserId, out var id))
-                return result.AddErrorMessage("Invalid userId");
+                return ResponseModel<UserDto>.Fail("Invalid userId");
 
             var user = await _userRepository.FindByIdAsync(dto.UserId);
             if (user == null)
-                return result.AddErrorMessage("User not found");
+                return ResponseModel<UserDto>.Fail("User not found");
 
             var identityResult = await _userRepository.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
             if (!identityResult.Succeeded)
@@ -75,10 +75,10 @@ namespace TenantIdentity.Application.Services
                 var errors = identityResult.Errors
                     .GroupBy(e => e.Code)
                     .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
-                return result.AddValidationErrorMessages(errors);
+                return ResponseModel<UserDto>.ValidationFail(errors);
             }
 
-            return result.AddSuccessMessage("Password changed successfully.");
+            return ResponseModel<UserDto>.Ok("Password changed successfully.");
         }
 
         public async Task<ResponseModel> SendResetPasswordEmailAsync(ForgotPasswordDto dto)
@@ -86,25 +86,25 @@ namespace TenantIdentity.Application.Services
             var result = new ResponseModel();
             var user = await _userRepository.FindByEmailAsync(dto.Email);
             if (user == null)
-                return result.AddErrorMessage("User not found");
+                return ResponseModel<UserDto>.Fail("User not found");
 
             var token = await _userRepository.GeneratePasswordResetTokenAsync(user);
             var encodedToken = WebUtility.UrlEncode(token);
             var resetPasswordLink = $"api/Users/reset-password?userId={user.Id}&token={encodedToken}";
 
             //await _emailService.SendRestPasswordLinkAsync(user.Email, resetPasswordLink);
-            return result.AddSuccessMessage("Reset password link generated. Please check your email");
+            return ResponseModel<UserDto>.Ok("Reset password link generated. Please check your email");
         }
 
         public async Task<ResponseModel> ResetPasswordAsync(ResetPasswordDto dto)
         {
             var result = new ResponseModel();
             if (!Guid.TryParse(dto.UserId, out var id))
-                return result.AddErrorMessage("Invalid userId");
+                return ResponseModel<UserDto>.Fail("Invalid userId");
 
             var user = await _userRepository.FindByIdAsync(dto.UserId);
             if (user == null)
-                return result.AddErrorMessage("User not found");
+                return ResponseModel<UserDto>.Fail("User not found");
 
             var identityResult = await _userRepository.ResetPasswordAsync(user, dto.Token, dto.NewPassword);
             if (!identityResult.Succeeded)
@@ -112,7 +112,7 @@ namespace TenantIdentity.Application.Services
                 var errors = identityResult.Errors
                     .GroupBy(e => e.Code)
                     .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
-                return result.AddValidationErrorMessages(errors);
+                return ResponseModel<UserDto>.ValidationFail(errors);
             }
 
             return result;
